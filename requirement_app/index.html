@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>需求文档管理系统</title>
+    <title>个人需求文档管理系统</title>
     <style>
         * {
             margin: 0;
@@ -490,8 +490,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📋 需求文档管理系统</h1>
-            <p>高效管理产品需求，跟踪需求全生命周期</p>
+            <h1>📒 个人需求文档管理系统</h1>
+            <p>高效管理个人需求，跟踪想法全生命周期</p>
         </div>
 
         <!-- 统计卡片 -->
@@ -772,6 +772,32 @@
         </div>
     </div>
 
+    <!-- 编辑项目模态框 -->
+    <div class="modal" id="editProjectModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>编辑项目</h2>
+                <button class="close-btn" onclick="closeEditProjectModal()">&times;</button>
+            </div>
+            <form id="editProjectForm">
+                <input type="hidden" id="editProjectId">
+                <div class="form-group">
+                    <label>项目名称 *</label>
+                    <input type="text" id="editProjectName" required>
+                </div>
+                <div class="form-group">
+                    <label>项目负责人 *</label>
+                    <input type="text" id="editProjectOwner" required>
+                </div>
+                <div class="form-group">
+                    <label>项目概述 *</label>
+                    <textarea id="editProjectDesc" rows="4" required></textarea>
+                </div>
+                <button type="submit" class="btn" style="margin-top: 15px;">💾 保存修改</button>
+            </form>
+        </div>
+    </div>
+
     <!-- 通知提示 -->
     <div class="notification" id="notification"></div>
 
@@ -832,13 +858,19 @@
                 return;
             }
             
-            tbody.innerHTML = allProjects.map(proj => `
+            // 按创建时间排序后重新编号
+            const sortedProjects = [...allProjects].sort((a, b) => {
+                return new Date(a.created_date) - new Date(b.created_date);
+            });
+            
+            tbody.innerHTML = sortedProjects.map((proj, index) => `
                 <tr>
-                    <td>#${proj.id}</td>
+                    <td>#${index + 1}</td>
                     <td><strong>${escapeHtml(proj.name)}</strong></td>
                     <td>${escapeHtml(proj.owner)}</td>
                     <td>${escapeHtml(proj.description)}</td>
                     <td>
+                        <button class="project-action-btn project-edit-btn" onclick="openEditProjectModal(${proj.id})">✏️ 编辑</button>
                         <button class="project-action-btn project-delete-btn" onclick="deleteProject(${proj.id})">🗑️ 删除</button>
                     </td>
                 </tr>
@@ -917,6 +949,63 @@
             .then(data => {
                 if (data.success) {
                     showNotification('🗑️ 项目已删除！', 'success');
+                    loadProjects();
+                } else {
+                    showNotification('❌ ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('❌ 网络错误', 'error');
+            });
+        }
+
+        // 打开编辑项目弹窗
+        function openEditProjectModal(projectId) {
+            const project = allProjects.find(p => p.id === projectId);
+            if (!project) return;
+            
+            document.getElementById('editProjectId').value = project.id;
+            document.getElementById('editProjectName').value = project.name;
+            document.getElementById('editProjectOwner').value = project.owner;
+            document.getElementById('editProjectDesc').value = project.description;
+            
+            const modal = document.getElementById('editProjectModal');
+            modal.style.display = 'block';
+        }
+
+        // 关闭编辑项目弹窗
+        function closeEditProjectModal() {
+            const modal = document.getElementById('editProjectModal');
+            modal.style.display = 'none';
+        }
+
+        // 编辑项目表单提交
+        document.getElementById('editProjectForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const projectId = parseInt(document.getElementById('editProjectId').value);
+            const project = {
+                name: document.getElementById('editProjectName').value.trim(),
+                owner: document.getElementById('editProjectOwner').value.trim(),
+                description: document.getElementById('editProjectDesc').value.trim()
+            };
+            
+            updateProject(projectId, project);
+        });
+
+        // 更新项目
+        function updateProject(projectId, project) {
+            fetch(`/api/update_project/${projectId}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(project)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(`✅ 项目 "${project.name}" 已更新！`, 'success');
+                    closeEditProjectModal();
                     loadProjects();
                 } else {
                     showNotification('❌ ' + data.error, 'error');

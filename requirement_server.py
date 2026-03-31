@@ -228,6 +228,62 @@ def delete_project(project_id):
         return response, 500
 
 
+@app.route('/api/update_project/<int:project_id>', methods=['PUT', 'OPTIONS'])
+def update_project(project_id):
+    """更新项目"""
+    try:
+        # Handle CORS preflight
+        if request.method == 'OPTIONS':
+            response = jsonify({'success': True})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+            response.headers.add('Access-Control-Allow-Methods', 'PUT, OPTIONS')
+            return response
+        
+        data = request.get_json()
+        
+        if not data or 'name' not in data:
+            return jsonify({'success': False, 'error': '缺少项目名称'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            UPDATE projects
+            SET name = ?, owner = ?, description = ?
+            WHERE id = ?
+        ''', (
+            data['name'].strip(),
+            data['owner'].strip(),
+            data.get('description', '').strip(),
+            project_id
+        ))
+        
+        success = cursor.rowcount > 0
+        conn.commit()
+        conn.close()
+        
+        if success:
+            response = jsonify({
+                'success': True,
+                'message': f'项目已更新'
+            })
+        else:
+            response = jsonify({'success': False, 'error': '项目不存在'})
+            response.status_code = 404
+        
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+        
+    except Exception as e:
+        response = jsonify({
+            'success': False,
+            'error': str(e)
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response, 500
+
+
 
 @app.route('/api/get_requirements')
 @api_response
