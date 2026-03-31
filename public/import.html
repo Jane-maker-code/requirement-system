@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>批量导入需求</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        textarea {
+            width: 100%;
+            min-height: 300px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: 'Consolas', monospace;
+            resize: vertical;
+            margin-bottom: 20px;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .help {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        .help code {
+            background: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>📥 批量导入需求</h1>
+            <p class="subtitle">从钉钉表格复制数据，粘贴后一键导入</p>
+            
+            <div class="help">
+                <strong>📝 使用说明：</strong><br><br>
+                <strong>方式 1：从钉钉表格复制</strong><br>
+                1. 打开钉钉表格：https://alidocs.dingtalk.com/i/nodes/2Amq4vjg89gPmZ0yh2Pa3dw3V3kdP0wQ<br>
+                2. 全选所有数据（Ctrl + A）<br>
+                3. 复制（Ctrl + C）<br>
+                4. 粘贴到下方文本框<br><br>
+                
+                <strong>方式 2：按格式手动填写</strong><br>
+                每行一个需求，用制表符或 | 分隔字段：<br>
+                <code>标题 | 描述 | 优先级 | 状态|负责人 | 链接</code><br><br>
+                示例：<br>
+                <code>登录优化 | 优化用户登录流程 | 高 | 评审中 | 张三 | https://...</code>
+            </div>
+            
+            <textarea id="dataInput" placeholder="在这里粘贴或输入需求数据...
+
+示例格式（每行一个需求）：
+登录功能优化	优化用户登录流程，支持一键登录	高	评审中	张三	https://...
+支付流程改进	简化支付步骤，提升转化率	高	开发中	李四	
+个人中心改版	重新设计个人中心布局	中	草稿	王五	https://..."></textarea>
+            
+            <button class="btn" onclick="importData()">✅ 开始导入</button>
+            <button class="btn btn-secondary" onclick="clearData()">🗑️ 清空</button>
+            <button class="btn btn-secondary" onclick="loadExample()">📋 加载示例</button>
+            
+            <div class="result" id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // 加载示例数据
+        function loadExample() {
+            const example = `登录功能优化	优化用户登录流程，支持手机号一键登录，减少注册流失率	高	评审中	张三	https://alidocs.dingtalk.com/i/nodes/xxx
+支付流程改进	简化支付步骤，从 5 步减少到 2 步，提升支付成功率	高	开发中	李四	https://...
+个人中心改版	重新设计个人中心布局，突出核心功能入口	中	草稿	王五	
+消息推送优化	优化推送策略，提升打开率，减少骚扰	低	已通过	赵六	https://...
+购物车升级	支持批量操作和优惠券功能	中	已完成	孙七`;
+            
+            document.getElementById('dataInput').value = example;
+        }
+        
+        // 清空数据
+        function clearData() {
+            document.getElementById('dataInput').value = '';
+            document.getElementById('result').style.display = 'none';
+        }
+        
+        // 解析一行数据
+        function parseLine(line) {
+            // 尝试用制表符或 | 分割
+            let parts = line.split('\t');
+            if (parts.length < 2) {
+                parts = line.split('|');
+            }
+            
+            if (parts.length < 2) return null;
+            
+            return {
+                title: parts[0].trim(),
+                description: parts[1].trim(),
+                priority: parts[2] ? parts[2].trim() : '中',
+                status: parts[3] ? parts[3].trim() : 'draft',
+                owner: parts[4] ? parts[4].trim() : '',
+                link: parts[5] ? parts[5].trim() : ''
+            };
+        }
+        
+        // 映射状态
+        function mapStatus(status) {
+            const statusMap = {
+                '草稿': 'draft',
+                '评审中': 'review',
+                '已通过': 'approved',
+                '开发中': 'developing',
+                '已完成': 'completed',
+                'draft': 'draft',
+                'review': 'review',
+                'approved': 'approved',
+                'developing': 'developing',
+                'completed': 'completed'
+            };
+            return statusMap[status] || 'draft';
+        }
+        
+        // 导入数据
+        async function importData() {
+            const text = document.getElementById('dataInput').value.trim();
+            const resultDiv = document.getElementById('result');
+            
+            if (!text) {
+                showResult('❌ 请输入或粘贴需求数据', 'error');
+                return;
+            }
+            
+            const lines = text.split('\n').filter(line => line.trim() && !line.startsWith('#'));
+            
+            if (lines.length === 0) {
+                showResult('❌ 没有有效的数据行', 'error');
+                return;
+            }
+            
+            showResult(`⏳ 正在导入 ${lines.length} 条数据...`, 'success');
+            
+            let success = 0;
+            let failed = 0;
+            const errors = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                const req = parseLine(line);
+                
+                if (!req || !req.title || !req.description) {
+                    failed++;
+                    errors.push(`第${i+1}行：格式错误`);
+                    continue;
+                }
+                
+                try {
+                    const response = await fetch('/api/add_requirement', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            title: req.title,
+                            description: req.description,
+                            priority: req.priority,
+                            status: mapStatus(req.status),
+                            owner: req.owner,
+                            link: req.link
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        success++;
+                    } else {
+                        failed++;
+                        errors.push(`第${i+1}行：${data.error}`);
+                    }
+                } catch (error) {
+                    failed++;
+                    errors.push(`第${i+1}行：网络错误`);
+                }
+            }
+            
+            let message = `<strong>导入完成！</strong><br>`;
+            message += `总计：${lines.length} 条<br>`;
+            message += `✅ 成功：${success} 条<br>`;
+            message += `❌ 失败：${failed} 条`;
+            
+            if (errors.length > 0) {
+                message += `<br><br><details><summary>查看错误详情</summary>${errors.join('<br>')}</details>`;
+            }
+            
+            if (success > 0) {
+                message += `<br><br><a href="/" style="color: #155724; text-decoration: underline;">📋 查看需求列表</a>`;
+            }
+            
+            showResult(message, success > 0 ? 'success' : 'error');
+        }
+        
+        // 显示结果
+        function showResult(message, type) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = message;
+            resultDiv.className = `result ${type}`;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
