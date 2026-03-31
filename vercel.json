@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "server.js"
+    }
+  ],
+  "env": {
+    "SUPABASE_URL": "https://vzwtyclmzzdchtcjpdcj.supabase.co",
+    "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ6d3R5Y2xtenpkY2h0Y2pwZGNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MzQyMDQsImV4cCI6MjA5MDUxMDIwNH0.kBdhe02fG4Rtjsgh9tpWdc3wDm5mQA9vYWaINWgxCXA"
+  }
+}
